@@ -16,8 +16,9 @@ concurrency:
 
 jobs:
   ftp-deploy:
-    name: Deploy via FTP
+    name: Deploy via lftp
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -47,55 +48,60 @@ jobs:
             exit 1
           fi
 
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+          lftp --version | head -n 1
+
       - name: Request Passenger restart
         run: |
           mkdir -p tmp
           echo "deploy ${{ github.run_id }} $(date -u +%FT%TZ)" > tmp/restart.txt
 
-      - name: Sync backend via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          # FTPS (explicit TLS) is the secure default. If your host only allows plain
-          # FTP, create a repository variable FTP_PROTOCOL=ftp and it will be used.
-          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
-          local-dir: ./
-          server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          # Whole-sync timeout in ms. 10 min for slow shared hosts; raise if a full
-          # deploy ever times out (e.g. 1800000 for 30 min).
-          timeout: 600000
-          log-level: standard
-          # Never wipe files that only exist on the server (.env, database, backups, logs).
-          dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/.idea/**
-            **/.vscode/**
-            **/.venv/**
-            **/venv/**
-            **/__pycache__/**
-            **/*.py[cod]
-            **/.pytest_cache/**
-            **/.mypy_cache/**
-            **/tests/**
-            **/requirements-dev.txt
-            **/.env
-            **/.env.local
-            **/.env.production
-            **/.env.prod
-            **/.env.staging
-            **/*.db
-            **/*.db-wal
-            **/*.db-shm
-            **/*.sqlite
-            **/*.sqlite3
-            **/backups/**
-            **/*.log
-            **/.ftp-deploy-sync-state.json
+      - name: Sync backend via lftp
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+          FTP_PROTOCOL: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+        run: |
+          set -euo pipefail
+
+          if [ "${FTP_PROTOCOL}" = "ftp" ]; then
+            SSL_SETTINGS="set ftp:ssl-allow off;"
+          else
+            SSL_SETTINGS="set ssl:verify-certificate no; set ftp:ssl-force true; set ftp:ssl-protect-data true;"
+          fi
+
+          # Add --delete to the mirror command below if you also want files removed
+          # from the repo to disappear on the server (excludes protect .env, DBs, logs).
+          lftp -c "
+          set cmd:fail-exit true;
+          set net:timeout 15;
+          set net:max-retries 3;
+          set net:reconnect-interval-base 5;
+          ${SSL_SETTINGS}
+          open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ${FTP_SERVER};
+          mirror --reverse --verbose --parallel=4 \
+            --exclude-glob .* \
+            --exclude-glob *.pyc \
+            --exclude-glob *.pyo \
+            --exclude-glob __pycache__/ \
+            --exclude-glob */__pycache__/ \
+            --exclude-glob tests/ \
+            --exclude-glob */tests/ \
+            --exclude-glob requirements-dev.txt \
+            --exclude-glob *.db \
+            --exclude-glob *.db-wal \
+            --exclude-glob *.db-shm \
+            --exclude-glob *.sqlite \
+            --exclude-glob *.sqlite3 \
+            --exclude-glob backups/ \
+            --exclude-glob *.log \
+            ./ ${FTP_SERVER_DIR}
+          "
 
       - name: Deployment summary
         if: always()
