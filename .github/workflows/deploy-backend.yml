@@ -63,7 +63,9 @@ jobs:
           protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
           local-dir: ./
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          timeout: 120000
+          # Whole-sync timeout in ms. 10 min for slow shared hosts; raise if a full
+          # deploy ever times out (e.g. 1800000 for 30 min).
+          timeout: 600000
           log-level: standard
           # Never wipe files that only exist on the server (.env, database, backups, logs).
           dangerous-clean-slate: false
