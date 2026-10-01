@@ -1,0 +1,114 @@
+name: Deploy Python Backend to cPanel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-deploy
+  cancel-in-progress: true
+
+jobs:
+  ftp-deploy:
+    name: Deploy via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check required secrets
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          missing=0
+          for name in FTP_SERVER FTP_USERNAME FTP_PASSWORD FTP_SERVER_DIR; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing repository secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo ""
+            echo "FTP_SERVER_DIR is the folder that contains app/, alembic/, passenger_wsgi.py"
+            echo "on the server. Examples:"
+            echo "  /admissionlife.cv/     (FTP user = main cPanel account)"
+            echo "  /                      (FTP user chrooted to the domain folder)"
+            echo "It must start and end with a slash."
+            exit 1
+          fi
+
+      - name: Request Passenger restart
+        run: |
+          mkdir -p tmp
+          echo "deploy ${{ github.run_id }} $(date -u +%FT%TZ)" > tmp/restart.txt
+
+      - name: Sync backend via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # FTPS (explicit TLS) is the secure default. If your host only allows plain
+          # FTP, create a repository variable FTP_PROTOCOL=ftp and it will be used.
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          timeout: 120000
+          log-level: standard
+          # Never wipe files that only exist on the server (.env, database, backups, logs).
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/.idea/**
+            **/.vscode/**
+            **/.venv/**
+            **/venv/**
+            **/__pycache__/**
+            **/*.py[cod]
+            **/.pytest_cache/**
+            **/.mypy_cache/**
+            **/tests/**
+            **/requirements-dev.txt
+            **/.env
+            **/.env.local
+            **/.env.production
+            **/.env.prod
+            **/.env.staging
+            **/*.db
+            **/*.db-wal
+            **/*.db-shm
+            **/*.sqlite
+            **/*.sqlite3
+            **/backups/**
+            **/*.log
+            **/.ftp-deploy-sync-state.json
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          {
+            echo "## Backend deployment"
+            echo ""
+            echo "- Synced the backend repo to \`${{ secrets.FTP_SERVER_DIR }}\`"
+            echo "- Passenger restart requested via \`tmp/restart.txt\`"
+            echo ""
+            echo "### After the first deploy (or when dependencies change)"
+            echo "In cPanel -> Setup Python App, run inside the app virtualenv:"
+            echo '```bash'
+            echo "pip install -r requirements.txt"
+            echo "python -m alembic upgrade head"
+            echo "python scripts/doctor.py"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
