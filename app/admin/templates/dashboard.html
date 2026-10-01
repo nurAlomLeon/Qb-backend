@@ -1,0 +1,91 @@
+{% extends "sqladmin/layout.html" %}
+{% block content %}
+<div class="container-xl">
+  <div class="page-header mb-3">
+    <h2 class="page-title">Dashboard</h2>
+    <div class="text-muted">Content and usage overview</div>
+  </div>
+
+  {% set cards = [
+    ("Universities", stats.universities, "fa-building-columns"),
+    ("Units", stats.units, "fa-layer-group"),
+    ("Papers", stats.papers, "fa-file-lines"),
+    ("Questions", stats.questions, "fa-circle-question"),
+    ("App Users", stats.users, "fa-user"),
+    ("Bookmarks", stats.bookmarks, "fa-bookmark"),
+    ("Sessions", stats.sessions, "fa-stopwatch")
+  ] %}
+
+  <div class="row row-cards mb-3">
+    {% for label, value, icon in cards %}
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <span class="avatar bg-blue-lt me-3"><i class="fa-solid {{ icon }}"></i></span>
+            <div>
+              <div class="text-muted">{{ label }}</div>
+              <div class="h1 mb-0">{{ value }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row row-cards">
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Recent practice sessions</h3></div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <thead>
+              <tr><th>ID</th><th>User</th><th>Paper</th><th>Answered</th><th>Correct</th><th>Score</th><th>When</th></tr>
+            </thead>
+            <tbody>
+              {% for session in recent_sessions %}
+              <tr>
+                <td>{{ session.id }}</td>
+                <td>{{ session.user_id }}</td>
+                <td>{{ session.paper_id }}</td>
+                <td>{{ session.answered }}</td>
+                <td>{{ session.correct }}</td>
+                <td>{{ session.score }}</td>
+                <td class="text-muted">{{ session.created_at }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="text-muted">No sessions yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Recently active users</h3></div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <thead>
+              <tr><th>ID</th><th>Device</th><th>Score</th><th>Last seen</th></tr>
+            </thead>
+            <tbody>
+              {% for user in recent_users %}
+              <tr>
+                <td>{{ user.id }}</td>
+                <td class="text-muted">{{ user.device_id[:12] }}…</td>
+                <td>{{ user.score_percent }}%</td>
+                <td class="text-muted">{{ user.last_seen_at }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-muted">No users yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "sqladmin/layout.html" %}
+{% block content %}
+<div class="container-xl">
+  <div class="page-header mb-3">
+    <h2 class="page-title">App Keys</h2>
+    <div class="text-muted">Each mobile app uses its own key to reach its university's content.</div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  {% if created_key %}
+  <div class="alert alert-success">
+    <h4 class="alert-title">Key created for "{{ created_label }}"</h4>
+    <p>Copy it now — it will not be shown again:</p>
+    <pre class="mb-0">{{ created_key }}</pre>
+  </div>
+  {% endif %}
+
+  <div class="card mb-3">
+    <div class="card-header"><h3 class="card-title">Generate a new key</h3></div>
+    <div class="card-body">
+      <form method="post" action="/admin/keygen">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="row">
+          <div class="col-md-5 mb-2">
+            <label class="form-label">University</label>
+            <select class="form-select" name="university_id" required>
+              {% for university in universities %}
+              <option value="{{ university.id }}">{{ university.slug }} — {{ university.name_bn }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-5 mb-2">
+            <label class="form-label">Label</label>
+            <input class="form-control" type="text" name="label" value="production" maxlength="80">
+          </div>
+          <div class="col-md-2 mb-2 d-flex align-items-end">
+            <button class="btn btn-primary w-100" type="submit">Generate</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Existing keys</h3></div>
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table">
+        <thead>
+          <tr><th>ID</th><th>University</th><th>Label</th><th>Active</th><th>Created</th></tr>
+        </thead>
+        <tbody>
+          {% for key, university in keys %}
+          <tr>
+            <td>{{ key.id }}</td>
+            <td>{{ university.slug }} — {{ university.name_bn }}</td>
+            <td>{{ key.label }}</td>
+            <td>{{ "yes" if key.is_active else "no" }}</td>
+            <td class="text-muted">{{ key.created_at }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-muted">No keys yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

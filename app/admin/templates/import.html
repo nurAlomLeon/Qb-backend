@@ -1,0 +1,71 @@
+{% extends "sqladmin/layout.html" %}
+{% block content %}
+<div class="container-xl">
+  <div class="page-header mb-3">
+    <h2 class="page-title">Import Questions</h2>
+    <div class="text-muted">
+      Upload CSV, XLSX or JSON. Existing rows with the same serial are updated.
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  {% if report %}
+  <div class="alert alert-info">
+    <h4 class="alert-title">Import finished</h4>
+    <p class="mb-1">Created: <strong>{{ report.created }}</strong> &nbsp; Updated: <strong>{{ report.updated }}</strong> &nbsp; Skipped: <strong>{{ report.skipped }}</strong></p>
+    {% if report.errors %}
+    <ul class="mb-0">
+      {% for message in report.errors %}<li>{{ message }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="card mb-3">
+    <div class="card-header"><h3 class="card-title">Upload file</h3></div>
+    <div class="card-body">
+      <form method="post" action="/admin/import" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="row">
+          <div class="col-md-5 mb-2">
+            <label class="form-label">Paper</label>
+            <select class="form-select" name="paper_id" required>
+              {% for paper, unit, university in papers %}
+              <option value="{{ paper.id }}">{{ university.slug }} / {{ unit.title_bn }} / {{ paper.label_bn }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4 mb-2">
+            <label class="form-label">Default subject (optional)</label>
+            <select class="form-select" name="subject_code">
+              <option value="">— use subject_code column —</option>
+              {% for subject in subjects %}
+              <option value="{{ subject.code }}">{{ subject.code }} — {{ subject.label_bn }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3 mb-2">
+            <label class="form-label">File</label>
+            <input class="form-control" type="file" name="file" accept=".csv,.xlsx,.json" required>
+          </div>
+        </div>
+        <button class="btn btn-primary mt-2" type="submit">Import</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Expected columns</h3></div>
+    <div class="card-body">
+      <p class="mb-1"><code>serial, subject_code, chapter_bn, stem_bn, stem_en, option_a, option_b, option_c, option_d, correct, explanation_bn, explanation_en, shortcut_bn, difficulty</code></p>
+      <p class="text-muted mb-0">
+        <code>correct</code> accepts ক/খ/গ/ঘ, A/B/C/D or 0-3. Difficulty: easy, medium, hard.
+        For JSON you may send a list, or an object with a <code>questions</code> array.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
