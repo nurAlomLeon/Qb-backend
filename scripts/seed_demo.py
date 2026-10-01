@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List
 
@@ -29,6 +30,7 @@ from app.models.content import (  # noqa: E402
     Subject,
     Unit,
 )
+from app.models.live_exam import LiveExam  # noqa: E402
 from app.models.university import (  # noqa: E402
     AppConfig,
     AppKey,
@@ -450,6 +452,7 @@ def seed(args: argparse.Namespace) -> None:
         db.commit()
 
         created_questions = 0
+        paper_by_key: Dict[tuple, int] = {}
         for unit_code, unit_papers in PAPERS.items():
             unit = units_by_code[unit_code]
             for year, label, status, question_count, duration, subjects_label in unit_papers:
@@ -472,6 +475,7 @@ def seed(args: argparse.Namespace) -> None:
                     )
                     db.add(paper)
                     db.flush()
+                paper_by_key[(unit_code, year)] = paper.id
 
                 db.execute(delete(Question).where(Question.paper_id == paper.id))
                 db.flush()
@@ -485,6 +489,59 @@ def seed(args: argparse.Namespace) -> None:
                         count=len(questions), unit=unit.title_bn, year=paper.label_bn
                     )
                 )
+
+        db.execute(delete(LiveExam).where(LiveExam.university_id == university.id))
+        now = datetime.now(timezone.utc)
+        db.add_all(
+            [
+                LiveExam(
+                    university_id=university.id,
+                    paper_id=paper_by_key[("k", 2024)],
+                    title_bn="মডেল টেস্ট ২০২৫ — ক ইউনিট (ফাইনাল)",
+                    subtitle_bn="ঢাকা বিশ্ববিদ্যালয়ের হুবহু ওএমআর ও নেগেটিভ মার্কিং ফরম্যাট",
+                    starts_at=now - timedelta(hours=1),
+                    ends_at=now + timedelta(hours=2),
+                    duration_minutes=90,
+                    question_count=120,
+                    participants=1243,
+                ),
+                LiveExam(
+                    university_id=university.id,
+                    paper_id=paper_by_key[("k", 2023)],
+                    title_bn="ক ইউনিট মডেল টেস্ট ২",
+                    subtitle_bn="বিগত বছরের প্রশ্নভিত্তিক ফুল সিলেবাস টেস্ট",
+                    starts_at=now + timedelta(days=2),
+                    ends_at=now + timedelta(days=2, hours=2),
+                    duration_minutes=90,
+                    question_count=120,
+                    participants=568,
+                ),
+                LiveExam(
+                    university_id=university.id,
+                    paper_id=paper_by_key[("kh", 2024)],
+                    title_bn="খ ইউনিট মডেল টেস্ট ১",
+                    subtitle_bn="বাংলা • ইংরেজি • সাধারণ জ্ঞান",
+                    starts_at=now + timedelta(days=5),
+                    ends_at=now + timedelta(days=5, hours=2),
+                    duration_minutes=90,
+                    question_count=100,
+                    participants=312,
+                ),
+                LiveExam(
+                    university_id=university.id,
+                    paper_id=paper_by_key[("g", 2024)],
+                    title_bn="চূড়ান্ত রিভিশন টেস্ট (সমাপ্ত)",
+                    subtitle_bn="গ ইউনিট — রিভিশন স্পেশাল",
+                    starts_at=now - timedelta(days=3),
+                    ends_at=now - timedelta(days=3) + timedelta(hours=2),
+                    duration_minutes=90,
+                    question_count=100,
+                    participants=2140,
+                ),
+            ]
+        )
+        db.flush()
+        print("Seeded 4 live exams.")
 
         raw_key = generate_app_key()
         db.add(

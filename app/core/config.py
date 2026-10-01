@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     cors_origins: str = "*"
 
+    auto_migrate: bool = False
+
     rate_limit_per_minute: int = 120
     auth_rate_limit_per_minute: int = 20
     default_page_size: int = 25

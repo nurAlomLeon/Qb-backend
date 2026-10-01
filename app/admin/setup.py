@@ -41,6 +41,7 @@ def setup_admin(app, engine: Engine, settings: Settings) -> None:
     admin.add_view(admin_views.UnitAdmin)
     admin.add_view(admin_views.SubjectAdmin)
     admin.add_view(admin_views.PaperAdmin)
+    admin.add_view(admin_views.LiveExamAdmin)
     admin.add_view(admin_views.QuestionAdmin)
     admin.add_view(admin_views.AppKeyAdmin)
     admin.add_view(admin_views.AppConfigAdmin)

@@ -71,6 +71,7 @@ Run the tests:
 | GET | `/api/v1/papers/{id}/questions` | app key | keyset pagination: `subject`, `after_serial`, `limit` |
 | GET | `/api/v1/questions/{id}` | app key | full question incl. answer + explanation |
 | GET | `/api/v1/search?q=` | app key | FTS5 search, snippet included |
+| GET | `/api/v1/live-exams` | app key | model tests with live/upcoming/ended status |
 | GET | `/api/v1/version/latest` | app key | force-update info |
 | POST | `/api/v1/auth/device` | app key | register device, returns bearer token |
 | GET/POST/DELETE | `/api/v1/bookmarks` | bearer | list / add / clear |

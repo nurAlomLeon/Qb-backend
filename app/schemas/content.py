@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -120,6 +121,20 @@ class VersionOut(BaseModel):
     min_supported: str
     force_update: bool
     message: Optional[str] = None
+
+
+class LiveExamOut(BaseModel):
+    id: int
+    paper_id: int
+    title_bn: str
+    subtitle_bn: Optional[str] = None
+    unit_title_bn: str
+    starts_at: datetime
+    ends_at: Optional[datetime] = None
+    duration_minutes: int
+    question_count: int
+    participants: int
+    status: str
 
 
 class ConfigOut(BaseModel):

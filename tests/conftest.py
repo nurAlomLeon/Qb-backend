@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -13,6 +14,7 @@ from app.db.session import create_db_engine, create_session_factory
 from app.main import create_app
 from app.models.admin import AdminUser
 from app.models.content import Paper, Question, QuestionOption, Subject, Unit
+from app.models.live_exam import LiveExam
 from app.models.university import AppConfig, AppKey, ContentMeta, University
 
 LETTERS = ["ক", "খ", "গ", "ঘ"]
@@ -149,6 +151,62 @@ def _seed(session_factory) -> dict:
                 _make_question(du, paper_2023, k_unit, physics, 1, "শক্তির একক কী?", "Unit of energy?"),
                 _make_question(du, paper_2023, k_unit, physics, 2, "আলোর বেগ কত?", "Speed of light?"),
                 _make_question(ru, ru_paper, ru_unit, physics, 1, "রাজশাহী প্রশ্ন: শক্তির একক?", "RU question: unit of energy?"),
+            ]
+        )
+
+        now = datetime.now(timezone.utc)
+        db.add_all(
+            [
+                LiveExam(
+                    university_id=du.id,
+                    paper_id=paper_2024.id,
+                    title_bn="লাইভ মডেল টেস্ট",
+                    subtitle_bn="ক ইউনিট ফাইনাল",
+                    starts_at=now - timedelta(hours=1),
+                    ends_at=now + timedelta(hours=1),
+                    duration_minutes=90,
+                    question_count=4,
+                    participants=500,
+                ),
+                LiveExam(
+                    university_id=du.id,
+                    paper_id=paper_2023.id,
+                    title_bn="আসন্ন মডেল টেস্ট",
+                    starts_at=now + timedelta(days=2),
+                    ends_at=now + timedelta(days=2, hours=2),
+                    duration_minutes=90,
+                    question_count=2,
+                    participants=120,
+                ),
+                LiveExam(
+                    university_id=du.id,
+                    paper_id=paper_2023.id,
+                    title_bn="সমাপ্ত মডেল টেস্ট",
+                    starts_at=now - timedelta(days=3),
+                    ends_at=now - timedelta(days=3) + timedelta(hours=2),
+                    duration_minutes=90,
+                    question_count=2,
+                    participants=900,
+                ),
+                LiveExam(
+                    university_id=du.id,
+                    paper_id=paper_2023.id,
+                    title_bn="অপ্রকাশিত মডেল টেস্ট",
+                    starts_at=now - timedelta(hours=1),
+                    ends_at=now + timedelta(hours=1),
+                    duration_minutes=90,
+                    question_count=2,
+                    is_published=False,
+                ),
+                LiveExam(
+                    university_id=ru.id,
+                    paper_id=ru_paper.id,
+                    title_bn="RU লাইভ মডেল টেস্ট",
+                    starts_at=now - timedelta(hours=1),
+                    ends_at=now + timedelta(hours=1),
+                    duration_minutes=90,
+                    question_count=1,
+                ),
             ]
         )
 

@@ -30,6 +30,11 @@ def create_app(
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine)
 
+    if settings.auto_migrate:
+        from app.core.migrations import run_startup_migrations
+
+        run_startup_migrations(settings.database_url)
+
     app.add_middleware(
         RateLimitMiddleware,
         per_minute=settings.rate_limit_per_minute,

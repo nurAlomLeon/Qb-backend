@@ -11,6 +11,7 @@ from app.admin.auth import csrf_token, log_admin_action, verify_csrf
 from app.core.security import generate_app_key, hash_app_key, hash_password
 from app.models.admin import AdminAuditLog, AdminUser
 from app.models.content import Paper, Question, QuestionOption, Subject, Unit
+from app.models.live_exam import LiveExam
 from app.models.university import AppConfig, AppKey, ContentMeta, University
 from app.models.user import Bookmark, PracticeSession, SessionAnswer, User
 from app.services.importing import import_rows, parse_upload
@@ -145,6 +146,36 @@ class SubjectAdmin(ModelView, model=Subject):
         Subject.icon,
         Subject.color,
         Subject.sort_order,
+    ]
+
+
+class LiveExamAdmin(ModelView, model=LiveExam):
+    name = "Live Exam"
+    name_plural = "Live Exams"
+    icon = "fa-solid fa-tower-broadcast"
+    column_list = [
+        LiveExam.id,
+        LiveExam.university_id,
+        LiveExam.paper_id,
+        LiveExam.title_bn,
+        LiveExam.starts_at,
+        LiveExam.ends_at,
+        LiveExam.participants,
+        LiveExam.is_published,
+    ]
+    column_searchable_list = [LiveExam.title_bn]
+    column_sortable_list = [LiveExam.starts_at]
+    form_columns = [
+        LiveExam.university_id,
+        LiveExam.paper_id,
+        LiveExam.title_bn,
+        LiveExam.subtitle_bn,
+        LiveExam.starts_at,
+        LiveExam.ends_at,
+        LiveExam.duration_minutes,
+        LiveExam.question_count,
+        LiveExam.participants,
+        LiveExam.is_published,
     ]
 
 
