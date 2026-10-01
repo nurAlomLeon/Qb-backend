@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    admin,
     auth,
     bookmarks,
     config,
@@ -29,3 +30,4 @@ api_router.include_router(auth.router)
 api_router.include_router(bookmarks.router)
 api_router.include_router(sessions.router)
 api_router.include_router(progress.router)
+api_router.include_router(admin.router)

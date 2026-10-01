@@ -209,3 +209,201 @@ def import_rows(
         "skipped": skipped,
         "errors": errors,
     }
+
+
+def _bump_content_meta(db: Session, university_id: int) -> None:
+    meta = db.execute(
+        select(ContentMeta).where(ContentMeta.university_id == university_id)
+    ).scalar_one_or_none()
+    if meta is None:
+        db.add(ContentMeta(university_id=university_id, content_version=1))
+    else:
+        meta.content_version += 1
+
+
+def _refresh_paper_count(db: Session, paper: Paper) -> None:
+    paper.question_count = (
+        db.scalar(
+            select(func.count(Question.id)).where(Question.paper_id == paper.id)
+        )
+        or 0
+    )
+
+
+def import_questions(
+    db: Session,
+    paper: Paper,
+    items: List[Dict],
+    mode: str = "upsert",
+) -> Dict:
+    created = 0
+    updated = 0
+    skipped = 0
+    errors: List[str] = []
+
+    subjects = {
+        subject.code: subject
+        for subject in db.execute(select(Subject)).scalars().all()
+    }
+    max_serial = (
+        db.scalar(
+            select(func.max(Question.serial)).where(Question.paper_id == paper.id)
+        )
+        or 0
+    )
+
+    for index, item in enumerate(items, start=1):
+        try:
+            subject_code = str(item.get("subject_code") or "").strip()
+            subject = subjects.get(subject_code)
+            if subject is None:
+                errors.append(
+                    "Item {index}: unknown subject_code '{code}'.".format(
+                        index=index, code=subject_code or "-"
+                    )
+                )
+                skipped += 1
+                continue
+
+            options = item.get("options") or []
+            if not isinstance(options, list) or len(options) < 2:
+                errors.append(
+                    "Item {index}: needs at least 2 options.".format(index=index)
+                )
+                skipped += 1
+                continue
+
+            stem_bn = str(item.get("stem_bn") or "").strip()
+            images = item.get("images") or []
+            if not stem_bn and not images:
+                errors.append("Item {index}: empty question stem.".format(index=index))
+                skipped += 1
+                continue
+
+            correct_index = item.get("correct_index")
+            if correct_index is None:
+                correct_letter = str(item.get("correct_letter") or "").strip()
+                correct_index = LETTER_INDEX.get(correct_letter)
+            if correct_index is None or not 0 <= int(correct_index) < len(options):
+                errors.append(
+                    "Item {index}: invalid correct answer.".format(index=index)
+                )
+                skipped += 1
+                continue
+            correct_index = int(correct_index)
+
+            source_pk = item.get("source_pk")
+            source_pk = str(source_pk) if source_pk not in (None, "") else None
+
+            serial = item.get("serial")
+            try:
+                serial = int(serial) if serial not in (None, "") else None
+            except (TypeError, ValueError):
+                serial = None
+
+            existing = None
+            if source_pk is not None:
+                existing = db.execute(
+                    select(Question).where(
+                        Question.paper_id == paper.id,
+                        Question.source_pk == source_pk,
+                    )
+                ).scalar_one_or_none()
+            elif serial is not None:
+                existing = db.execute(
+                    select(Question).where(
+                        Question.paper_id == paper.id,
+                        Question.serial == serial,
+                    )
+                ).scalar_one_or_none()
+
+            if existing is not None and mode == "skip":
+                skipped += 1
+                continue
+
+            if serial is None:
+                max_serial += 1
+                serial = max_serial
+            elif source_pk is not None and existing is None:
+                collision = db.execute(
+                    select(Question.id).where(
+                        Question.paper_id == paper.id,
+                        Question.serial == serial,
+                    )
+                ).first()
+                if collision is not None:
+                    max_serial += 1
+                    serial = max_serial
+
+            values = {
+                "subject_id": subject.id,
+                "chapter_bn": str(item.get("chapter_bn") or ""),
+                "stem_bn": stem_bn,
+                "stem_html": item.get("stem_html"),
+                "stem_en": str(item.get("stem_en") or ""),
+                "correct_index": correct_index,
+                "explanation_bn": str(item.get("explanation_bn") or ""),
+                "explanation_html": item.get("explanation_html"),
+                "shortcut_bn": item.get("shortcut_bn"),
+                "difficulty": str(item.get("difficulty") or "medium"),
+                "mark": item.get("mark"),
+                "source": item.get("source"),
+                "source_pk": source_pk,
+                "images": images or None,
+                "tags": item.get("tags"),
+                "raw_json": item.get("raw_json"),
+            }
+
+            if existing is None:
+                question = Question(
+                    university_id=paper.university_id,
+                    paper_id=paper.id,
+                    unit_id=paper.unit_id,
+                    serial=serial,
+                    **values,
+                )
+                db.add(question)
+                db.flush()
+                created += 1
+            else:
+                question = existing
+                if serial is not None:
+                    values["serial"] = serial
+                for key, value in values.items():
+                    setattr(question, key, value)
+                for option in list(question.options):
+                    db.delete(option)
+                db.flush()
+                updated += 1
+
+            for order, option in enumerate(options):
+                if not isinstance(option, dict):
+                    option = {"text": str(option)}
+                letter = str(option.get("letter") or "").strip()
+                if not letter:
+                    letter = OPTION_LETTERS[order] if order < 4 else str(order + 1)
+                db.add(
+                    QuestionOption(
+                        question_id=question.id,
+                        letter=letter,
+                        text=str(option.get("text") or ""),
+                        text_html=option.get("text_html"),
+                        image_url=option.get("image_url"),
+                        sort_order=order,
+                    )
+                )
+        except Exception as exc:
+            errors.append("Item {index}: {err}".format(index=index, err=exc))
+            skipped += 1
+
+    _bump_content_meta(db, paper.university_id)
+    _refresh_paper_count(db, paper)
+    db.commit()
+
+    return {
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "errors": errors,
+        "question_count": paper.question_count,
+    }

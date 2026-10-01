@@ -229,6 +229,7 @@ def ctx():
         database_url="sqlite://",
         secret_key="test-secret-key",
         admin_session_secret="test-admin-secret",
+        admin_api_key="test-admin-key",
         cors_origins="*",
         rate_limit_per_minute=100000,
         auth_rate_limit_per_minute=100000,
@@ -254,6 +255,7 @@ def ctx():
         ru_key=keys["ru_key"],
         du_headers={"X-App-Key": keys["du_key"]},
         ru_headers={"X-App-Key": keys["ru_key"]},
+        admin_headers={"X-Admin-Key": "test-admin-key"},
     )
 
 

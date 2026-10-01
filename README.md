@@ -91,6 +91,28 @@ Errors always look like `{"error": {"code": "...", "message": "..."}}`.
 4. Admin panel -> **Import Questions** -> upload CSV/XLSX/JSON into each paper.
 5. Ship the key inside the new Flutter app build (`X-App-Key`).
 
+## Admin REST API (used by the scraper/import tool)
+
+Enabled by setting `DUQB_ADMIN_API_KEY`; every request needs the `X-Admin-Key`
+header (disabled -> HTTP 503, wrong key -> 401).
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/admin/ping` | connectivity + row counts |
+| GET/POST | `/api/v1/admin/universities` | list / create-or-get |
+| GET | `/api/v1/admin/universities/{id}/units` | list units |
+| POST | `/api/v1/admin/units` | create-or-get unit |
+| GET/POST | `/api/v1/admin/subjects` | list / create-or-get subject |
+| GET | `/api/v1/admin/units/{id}/papers` | list papers |
+| POST | `/api/v1/admin/papers` | create-or-get paper |
+| POST | `/api/v1/admin/papers/{id}/import` | bulk import scraped questions (`mode: upsert|skip`) |
+
+Imported questions keep the full source payload: `source`, `source_pk` (dedupe
+key), `mark`, `stem_html`, `explanation_html`, `images`, `tags`, `raw_json`;
+option rows keep `text_html` and `image_url` (equation images). The public
+question endpoints expose `images` and `option.image_url` so the Flutter app can
+render them.
+
 ## Question import format
 
 Columns (CSV/XLSX header row, or JSON objects):

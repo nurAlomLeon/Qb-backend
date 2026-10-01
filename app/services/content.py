@@ -169,6 +169,7 @@ def get_question(
 
 
 def question_summary(question: Question) -> QuestionSummaryOut:
+    images = question.images
     return QuestionSummaryOut(
         id=question.id,
         paper_id=question.paper_id,
@@ -181,6 +182,7 @@ def question_summary(question: Question) -> QuestionSummaryOut:
         difficulty=question.difficulty,
         analytics_percent=question.analytics_percent,
         options=[OptionOut.model_validate(option) for option in question.options],
+        images=[str(url) for url in images] if isinstance(images, list) else [],
     )
 
 
@@ -199,4 +201,5 @@ def question_detail(question: Question) -> QuestionDetailOut:
         explanation_bn=question.explanation_bn,
         explanation_en=question.explanation_en,
         shortcut_bn=question.shortcut_bn,
+        mark=question.mark,
     )

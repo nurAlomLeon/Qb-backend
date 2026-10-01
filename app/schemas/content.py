@@ -81,6 +81,7 @@ class OptionOut(BaseModel):
 
     letter: str
     text: str
+    image_url: Optional[str] = None
 
 
 class QuestionSummaryOut(BaseModel):
@@ -97,6 +98,7 @@ class QuestionSummaryOut(BaseModel):
     difficulty: str
     analytics_percent: int
     options: List[OptionOut] = []
+    images: List[str] = []
 
 
 class QuestionDetailOut(QuestionSummaryOut):
@@ -105,6 +107,7 @@ class QuestionDetailOut(QuestionSummaryOut):
     explanation_bn: str
     explanation_en: Optional[str] = None
     shortcut_bn: Optional[str] = None
+    mark: Optional[float] = None
 
 
 class SearchResultOut(BaseModel):

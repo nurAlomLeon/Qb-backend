@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-change-me"
     device_token_salt: str = "device-token-v1"
     admin_session_secret: str = "dev-admin-session-change-me"
+    admin_api_key: str = ""
 
     cors_origins: str = "*"
 

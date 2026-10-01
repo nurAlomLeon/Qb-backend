@@ -6,9 +6,11 @@ from typing import List, Optional
 from sqlalchemy import (
     Boolean,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -107,6 +109,7 @@ class Question(Base):
             "is_published",
             "updated_at",
         ),
+        Index("ix_questions_paper_source_pk", "paper_id", "source_pk"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -134,6 +137,14 @@ class Question(Base):
     analytics_percent: Mapped[int] = mapped_column(Integer, default=0)
     analytics_attempts: Mapped[int] = mapped_column(Integer, default=0)
     analytics_correct: Mapped[int] = mapped_column(Integer, default=0)
+    mark: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    source: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    source_pk: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    stem_html: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    explanation_html: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    images: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    tags: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    raw_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
@@ -164,6 +175,8 @@ class QuestionOption(Base):
     )
     letter: Mapped[str] = mapped_column(String(4))
     text: Mapped[str] = mapped_column(Text)
+    text_html: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
     question: Mapped[Question] = relationship(back_populates="options")
