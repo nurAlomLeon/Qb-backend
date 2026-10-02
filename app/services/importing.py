@@ -5,7 +5,7 @@ import io
 import json
 from typing import Dict, List
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models.content import Paper, Question, QuestionOption, Subject
@@ -240,6 +240,11 @@ def import_questions(
     updated = 0
     skipped = 0
     errors: List[str] = []
+
+    if mode == "replace":
+        db.execute(delete(Question).where(Question.paper_id == paper.id))
+        db.flush()
+        mode = "upsert"
 
     subjects = {
         subject.code: subject

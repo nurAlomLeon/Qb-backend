@@ -216,6 +216,47 @@ def test_admin_import_update_keeps_serial_on_collision(ctx):
     assert 1 in serials  # the seeded question is untouched
 
 
+def test_admin_import_replace_mode(ctx):
+    paper = ctx.client.post(
+        "/api/v1/admin/papers",
+        json={
+            "university_id": 1,
+            "unit_id": 1,
+            "year": 2031,
+            "label_bn": "২০৩০-৩১ শিক্ষাবর্ষ",
+            "question_count": 0,
+        },
+        headers=ctx.admin_headers,
+    ).json()["data"]
+    paper_id = paper["id"]
+
+    ctx.client.post(
+        "/api/v1/admin/papers/{id}/import".format(id=paper_id),
+        json={
+            "mode": "upsert",
+            "questions": [_question(source_pk="r-1", serial=1), _question(source_pk="r-2", serial=2)],
+        },
+        headers=ctx.admin_headers,
+    )
+
+    replaced = ctx.client.post(
+        "/api/v1/admin/papers/{id}/import".format(id=paper_id),
+        json={"mode": "replace", "questions": [_question(source_pk="r-3", serial=1)]},
+        headers=ctx.admin_headers,
+    )
+    assert replaced.status_code == 200, replaced.text
+    report = replaced.json()["data"]
+    assert report["created"] == 1
+    assert report["question_count"] == 1
+
+    questions = ctx.client.get(
+        "/api/v1/papers/{id}/questions?limit=50".format(id=paper_id),
+        headers=ctx.du_headers,
+    ).json()["data"]
+    assert len(questions) == 1
+    assert questions[0]["serial"] == 1
+
+
 def test_admin_import_reports_bad_rows(ctx):
     response = ctx.client.post(
         "/api/v1/admin/papers/1/import",

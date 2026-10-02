@@ -269,8 +269,10 @@ def import_paper_questions(
     paper = db.get(Paper, paper_id)
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found.")
-    if payload.mode not in ("upsert", "skip"):
-        raise HTTPException(status_code=422, detail="mode must be upsert or skip.")
+    if payload.mode not in ("upsert", "skip", "replace"):
+        raise HTTPException(
+            status_code=422, detail="mode must be upsert, skip or replace."
+        )
 
     items = [
         question.model_dump(exclude_none=False)
