@@ -180,6 +180,42 @@ def test_admin_import_upsert_and_skip(ctx):
     assert third["created"] == 0
 
 
+def test_admin_import_update_keeps_serial_on_collision(ctx):
+    # paper 1 already has seeded questions with serials 1..4
+    first = ctx.client.post(
+        "/api/v1/admin/papers/1/import",
+        json={"mode": "upsert", "questions": [_question(source_pk="collision-1", serial=1)]},
+        headers=ctx.admin_headers,
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["data"]["created"] == 1
+
+    questions = ctx.client.get(
+        "/api/v1/papers/1/questions?limit=100", headers=ctx.du_headers
+    ).json()["data"]
+    imported = next(item for item in questions if item["serial"] > 4)
+    assert imported["serial"] == 5
+
+    # re-import the same source_pk with the API serial (1) - must update and
+    # keep the assigned serial instead of colliding with the seeded question
+    second = ctx.client.post(
+        "/api/v1/admin/papers/1/import",
+        json={"mode": "upsert", "questions": [_question(source_pk="collision-1", serial=1)]},
+        headers=ctx.admin_headers,
+    )
+    assert second.status_code == 200, second.text
+    report = second.json()["data"]
+    assert report["created"] == 0
+    assert report["updated"] == 1
+
+    questions = ctx.client.get(
+        "/api/v1/papers/1/questions?limit=100", headers=ctx.du_headers
+    ).json()["data"]
+    serials = [item["serial"] for item in questions]
+    assert serials.count(5) == 1
+    assert 1 in serials  # the seeded question is untouched
+
+
 def test_admin_import_reports_bad_rows(ctx):
     response = ctx.client.post(
         "/api/v1/admin/papers/1/import",

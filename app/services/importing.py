@@ -367,8 +367,16 @@ def import_questions(
                 created += 1
             else:
                 question = existing
-                if serial is not None:
-                    values["serial"] = serial
+                if serial is not None and serial != question.serial:
+                    collision = db.execute(
+                        select(Question.id).where(
+                            Question.paper_id == paper.id,
+                            Question.serial == serial,
+                            Question.id != question.id,
+                        )
+                    ).first()
+                    if collision is None:
+                        values["serial"] = serial
                 for key, value in values.items():
                     setattr(question, key, value)
                 for option in list(question.options):

@@ -276,7 +276,16 @@ def import_paper_questions(
         question.model_dump(exclude_none=False)
         for question in payload.questions
     ]
-    report = import_questions(db, paper, items, mode=payload.mode)
+    try:
+        report = import_questions(db, paper, items, mode=payload.mode)
+    except Exception as exc:  # noqa: BLE001
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Import failed: {cls}: {err}".format(
+                cls=exc.__class__.__name__, err=str(exc)[:200]
+            ),
+        ) from exc
     return Envelope(
         data=AdminImportReport(
             created=report["created"],
