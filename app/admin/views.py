@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqladmin import BaseView, ModelView, expose
@@ -439,6 +440,23 @@ class KeygenView(DbSessionMixin, BaseView):
                 return await self._render(
                     request, error="Select a valid university."
                 )
+
+            existing = db.execute(
+                select(AppKey).where(
+                    AppKey.university_id == university_id,
+                    AppKey.label == label,
+                )
+            ).scalar_one_or_none()
+            if existing is not None:
+                return await self._render(
+                    request,
+                    error=(
+                        "A key labelled '{label}' already exists for {slug}. "
+                        "Choose a different label (e.g. mobile-prod) or deactivate "
+                        "the old key first.".format(label=label, slug=university.slug)
+                    ),
+                )
+
             raw_key = generate_app_key()
             db.add(
                 AppKey(
@@ -455,6 +473,24 @@ class KeygenView(DbSessionMixin, BaseView):
                 detail={"university_id": university_id, "label": label},
             )
         return await self._render(request, created_key=raw_key, created_label=label)
+
+    def _suggest_label(self, db, university_id: Optional[int]) -> str:
+        base = "production"
+        used = {
+            row.label
+            for row in db.execute(
+                select(AppKey).where(AppKey.university_id == university_id)
+            ).scalars()
+        }
+        if base not in used:
+            return base
+        for index in range(2, 100):
+            candidate = "{base}-{index}".format(base=base, index=index)
+            if candidate not in used:
+                return candidate
+        return "mobile-{stamp}".format(
+            stamp=datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        )
 
     async def _render(
         self,
@@ -478,6 +514,9 @@ class KeygenView(DbSessionMixin, BaseView):
                 )
                 .all()
             )
+            suggested_label = self._suggest_label(
+                db, universities[0].id if universities else None
+            )
         return await self.templates.TemplateResponse(
             request,
             "keys.html",
@@ -487,6 +526,7 @@ class KeygenView(DbSessionMixin, BaseView):
                 "created_key": created_key,
                 "created_label": created_label,
                 "error": error,
+                "suggested_label": suggested_label,
                 "csrf_token": csrf_token(request),
             },
         )

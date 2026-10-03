@@ -81,6 +81,37 @@ def test_admin_import_page_and_csv_upload(ctx):
     assert 10 in serials
 
 
+def test_admin_keygen_duplicate_label_is_handled(ctx):
+    _login(ctx)
+    page = ctx.client.get("/admin/keygen")
+    first = ctx.client.post(
+        "/admin/keygen",
+        data={"university_id": "1", "label": "mobile-prod", "csrf_token": _csrf(page.text)},
+    )
+    assert first.status_code == 200
+    assert "Key created" in first.text
+
+    page = ctx.client.get("/admin/keygen")
+    second = ctx.client.post(
+        "/admin/keygen",
+        data={"university_id": "1", "label": "mobile-prod", "csrf_token": _csrf(page.text)},
+    )
+    assert second.status_code == 200
+    assert "already exists" in second.text
+    assert "Key created" not in second.text
+
+
+def test_admin_keygen_suggests_unique_label(ctx):
+    _login(ctx)
+    page = ctx.client.get("/admin/keygen")
+    ctx.client.post(
+        "/admin/keygen",
+        data={"university_id": "1", "label": "production", "csrf_token": _csrf(page.text)},
+    )
+    page = ctx.client.get("/admin/keygen")
+    assert 'value="production-2"' in page.text
+
+
 def test_admin_audit_log_written(ctx):
     _login(ctx)
     page = ctx.client.get("/admin/keygen")

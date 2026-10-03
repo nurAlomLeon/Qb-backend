@@ -54,7 +54,8 @@
           </div>
           <div class="col-md-5 mb-2">
             <label class="form-label">Label</label>
-            <input class="form-control" type="text" name="label" value="production" maxlength="80">
+            <input class="form-control" type="text" name="label" value="{{ suggested_label or 'production' }}" maxlength="80">
+            <small class="form-hint">Labels must be unique per university.</small>
           </div>
           <div class="col-md-2 mb-2 d-flex align-items-end">
             <button class="btn btn-primary w-100" type="submit">Generate</button>
