@@ -27,6 +27,7 @@ def _question(source_pk: str = "399548", serial: int = 1) -> dict:
         "source": "aapathshala",
         "source_pk": source_pk,
         "images": ["https://cdn.example.com/figure1.png"],
+        "explanation_images": ["https://cdn.example.com/solution1.png"],
         "tags": {"year": "2023", "subject": "P-1"},
         "raw_json": {"pk": source_pk, "question": "<p>raw</p>"},
     }
@@ -161,6 +162,7 @@ def test_admin_import_upsert_and_skip(ctx):
     ).json()["data"]
     assert detail["mark"] == 2.5
     assert detail["explanation_bn"] == "Ek = ½mv²"
+    assert detail["explanation_images"] == ["https://cdn.example.com/solution1.png"]
 
     second = ctx.client.post(
         "/api/v1/admin/papers/{id}/import".format(id=paper_id),

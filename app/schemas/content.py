@@ -108,6 +108,7 @@ class QuestionDetailOut(QuestionSummaryOut):
     explanation_en: Optional[str] = None
     shortcut_bn: Optional[str] = None
     mark: Optional[float] = None
+    explanation_images: List[str] = []
 
 
 class SearchResultOut(BaseModel):

@@ -143,6 +143,7 @@ class Question(Base):
     stem_html: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     explanation_html: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     images: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    explanation_images: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     tags: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     raw_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True)

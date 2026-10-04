@@ -117,6 +117,7 @@ class AdminQuestionIn(BaseModel):
     source: Optional[str] = None
     source_pk: Optional[str] = None
     images: List[str] = []
+    explanation_images: List[str] = []
     tags: Optional[dict] = None
     raw_json: Optional[dict] = None
 

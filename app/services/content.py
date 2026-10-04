@@ -194,6 +194,7 @@ def question_detail(question: Question) -> QuestionDetailOut:
         if 0 <= question.correct_index < len(options)
         else ""
     )
+    explanation_images = question.explanation_images
     return QuestionDetailOut(
         **summary.model_dump(),
         correct_index=question.correct_index,
@@ -202,4 +203,9 @@ def question_detail(question: Question) -> QuestionDetailOut:
         explanation_en=question.explanation_en,
         shortcut_bn=question.shortcut_bn,
         mark=question.mark,
+        explanation_images=(
+            [str(url) for url in explanation_images]
+            if isinstance(explanation_images, list)
+            else []
+        ),
     )

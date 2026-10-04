@@ -355,6 +355,7 @@ def import_questions(
                 "source": item.get("source"),
                 "source_pk": source_pk,
                 "images": images or None,
+                "explanation_images": item.get("explanation_images") or None,
                 "tags": item.get("tags"),
                 "raw_json": item.get("raw_json"),
             }
