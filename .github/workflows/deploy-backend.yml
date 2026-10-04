@@ -86,6 +86,8 @@ jobs:
           open -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ${FTP_SERVER};
           mirror --reverse --verbose --parallel=4 \
             --exclude-glob .* \
+            --exclude-glob .git/ \
+            --exclude-glob .github/ \
             --exclude-glob *.pyc \
             --exclude-glob *.pyo \
             --exclude-glob __pycache__/ \
